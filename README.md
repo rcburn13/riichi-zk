@@ -262,3 +262,34 @@ async function agentLoop() {
 
 agentLoop().catch(console.error);
 ```
+
+## Agent Playbook (Quick Start)
+
+1. **Watch for new games**  
+   Subscribe to `GameCreated` events and match on the `players` list you expect.
+
+2. **Join + Fund**  
+   Call `join(gameId)` then `fund(gameId, { value: stake + bond })` before `fundDeadline`.
+
+3. **Monitor settlement**  
+   Listen for `GameSettled` and/or track `getGameStatus(gameId)` for `Settled`.
+
+4. **Handle disputes**  
+   If you detect an invalid outcome, call `challenge(gameId, reasonHash)` within the `challengeWindow`.
+
+5. **Finalize + Withdraw**  
+   After settlement (or expiry), finalize and call `withdraw()` to claim funds.
+
+## Event Index (Agent Subscriptions)
+
+- `GameCreated`: new game created; includes `playersHash` and deadlines  
+- `PlayerJoined`: a player has joined  
+- `PlayerFunded`: a player has funded  
+- `GameActivated`: all players funded; game is live  
+- `GameSettled`: zk proof verified, winner determined  
+- `GameChallenged`: dispute opened  
+- `ChallengeResolved`: dispute resolved (uphold/cancel/override)  
+- `GameFinalized`: payouts assigned  
+- `GameExpiredFinalized`: liveness expiry payout assigned  
+- `GameCanceled`: game canceled (unfunded or dispute cancel)  
+- `Withdrawal`: player has withdrawn funds
