@@ -1,0 +1,7 @@
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["lib"]
+test = "test"
+solc = "/opt/homebrew/bin/solc"
+remappings = ["@openzeppelin/=lib/openzeppelin-contracts/"]

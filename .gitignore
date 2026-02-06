@@ -1,0 +1,22 @@
+# Node / Hardhat
+node_modules/
+cache/
+artifacts/
+coverage/
+coverage.json
+hardhat.config.*.tsbuildinfo
+
+# Foundry
+out/
+lib/
+broadcast/
+foundry.toml.bak
+
+# Circom
+*.r1cs
+*.sym
+*.json
+*.wasm
+
+# OS
+.DS_Store
