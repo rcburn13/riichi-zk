@@ -821,6 +821,34 @@ contract RiichiSettlementTest {
         settlement.finalizeExpired(gameId);
     }
 
+    function testEventsCancelUnfunded() public {
+        RiichiSettlementV1_1 settlement = _deploy();
+
+        address a = vm.addr(PK_A);
+        address b = vm.addr(PK_B);
+
+        address[] memory players = new address[](2);
+        players[0] = a;
+        players[1] = b;
+
+        bytes32 gameId = keccak256(abi.encodePacked("game-events-unfunded"));
+        GameParams memory p = _paramsCustom(gameId, 100, 10, 10, 100);
+
+        _createGameSigned(settlement, players, p);
+
+        vm.prank(a);
+        settlement.join(gameId);
+        vm.deal(a, p.stakePerPlayer + p.bondPerPlayer);
+        vm.prank(a);
+        settlement.fund{value: p.stakePerPlayer + p.bondPerPlayer}(gameId);
+
+        vm.warp(block.timestamp + p.fundDuration + 1);
+
+        vm.expectEmit(true, true, false, true);
+        emit GameCanceled(gameId);
+        settlement.cancelUnfunded(gameId);
+    }
+
     function testChallengeBondPaidGame() public {
         RiichiSettlementV1_1 settlement = _deploy();
 

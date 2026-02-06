@@ -91,6 +91,10 @@ While challenged, the game is **Disputed** and cannot be finalized until the arb
 
 Challenges include a `reasonHash` (arbitrary `bytes32`) for off-chain context.
 
+## Threat Model (Hackathon)
+
+This protocol assumes the zk verifier and circuit are correct and that the `house` (arbiter) is honest. The dispute system is a safety valve, but it is **not** fully trustless because the arbiter can uphold, cancel, or override results. Off‑chain engine outputs are trusted only via zk proofs; if the proving system or verifier is compromised, funds can be misallocated. Always validate verifier keys and circuit hashes before deployment.
+
 ## Security Checklist (Hackathon)
 
 - Contract compiled with Solidity `0.8.20`+ (checked).
