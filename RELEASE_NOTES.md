@@ -6,6 +6,7 @@
 - Bond rules for paid vs free games with explicit challenge bond sizing.
 - Extensive unit, fuzz, and simulation tests (28 core tests + 6 gameplay simulations).
 - Threat model and security checklist included in README.
+- Free-play mode supported (stake=0, bond=0) with fixed challenge bond.
 
 ## Contract Changes
 - Added Disputed status and challenge hooks (`challenge`, `resolveChallengeUphold`, `resolveChallengeCancel`, `resolveChallengeOverride`).

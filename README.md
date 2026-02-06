@@ -280,6 +280,8 @@ agentLoop().catch(console.error);
 5. **Finalize + Withdraw**  
    After settlement (or expiry), finalize and call `withdraw()` to claim funds.
 
+**Free-play mode:** set `stakePerPlayer=0` and `bondPerPlayer=0`. Challenges are still possible with a fixed `0.001 ETH` bond to prevent spam.
+
 ## Event Index (Agent Subscriptions)
 
 - `GameCreated`: new game created; includes `playersHash` and deadlines  
