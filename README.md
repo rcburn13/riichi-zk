@@ -126,3 +126,139 @@ This protocol assumes the zk verifier and circuit are correct and that the `hous
   - Create game, join/fund, settle, finalize.
   - Challenge and resolve (uphold/cancel/override).
 - Freeze the final contract address in any client or backend configs.
+
+## Agent-Friendly API Snippets
+
+Below are minimal `ethers` (v6) examples to help agents plug in quickly. These assume a deployed `RiichiSettlementV1_1` address and a connected signer.
+
+### 1) Create Game (EIP-712 signatures)
+```js
+import { ethers } from "ethers";
+
+const contract = new ethers.Contract(address, abi, signer);
+
+// Players must agree on order
+const players = [playerA, playerB, playerC];
+
+const playersHash = ethers.keccak256(
+  ethers.AbiCoder.defaultAbiCoder().encode(["address[]"], [players])
+);
+
+const domain = {
+  name: "RiichiSettlementV1_1",
+  version: "1",
+  chainId,
+  verifyingContract: address
+};
+
+const types = {
+  CreateGame: [
+    { name: "gameId", type: "bytes32" },
+    { name: "playersHash", type: "bytes32" },
+    { name: "stakePerPlayer", type: "uint256" },
+    { name: "bondPerPlayer", type: "uint256" },
+    { name: "fundDuration", type: "uint256" },
+    { name: "settleDuration", type: "uint256" },
+    { name: "challengeWindow", type: "uint256" }
+  ]
+};
+
+const value = {
+  gameId,
+  playersHash,
+  stakePerPlayer,
+  bondPerPlayer,
+  fundDuration,
+  settleDuration,
+  challengeWindow
+};
+
+// Each player signs the same typed data
+const sigs = await Promise.all(players.map(p => p.signTypedData(domain, types, value)));
+
+await contract.createGame(
+  gameId,
+  players,
+  sigs,
+  stakePerPlayer,
+  bondPerPlayer,
+  fundDuration,
+  settleDuration,
+  challengeWindow
+);
+```
+
+### 2) Join + Fund
+```js
+await contract.join(gameId);
+
+const value = stakePerPlayer + bondPerPlayer;
+await contract.fund(gameId, { value });
+```
+
+### 3) Settle (submit proof)
+```js
+// a, b, c are Groth16 proof elements; ps are public signals
+await contract.settle(gameId, a, b, c, ps);
+```
+
+### 4) Finalize
+```js
+await contract.finalizeSettlement(gameId);
+// or, if settleDeadline passed:
+await contract.finalizeExpired(gameId);
+```
+
+### 5) Challenge + Resolve (arbiter only)
+```js
+const bond = await contract.challengeBond(gameId);
+await contract.challenge(gameId, reasonHash, { value: bond });
+
+// arbiter (house) resolves:
+await contract.resolveChallengeUphold(gameId);
+// or:
+await contract.resolveChallengeCancel(gameId);
+// or:
+await contract.resolveChallengeOverride(gameId, newWinner);
+```
+
+### 6) Withdraw Winnings
+```js
+await contract.withdraw();
+```
+
+### 7) Agent Bot Loop (minimal example)
+```js
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+const contract = new ethers.Contract(address, abi, wallet);
+
+// Minimal loop: watch for Open games, join/fund, then wait for settle.
+async function agentLoop() {
+  // Example: watch for GameCreated events and join if you're a listed player
+  contract.on("GameCreated", async (gameId, playersHash) => {
+    // You must know the full `players` array off-chain to compare with hash
+    // If you're in the game, join + fund
+    try {
+      await contract.join(gameId);
+      const stakePerPlayer = /* from game config */;
+      const bondPerPlayer = /* from game config */;
+      await contract.fund(gameId, { value: stakePerPlayer + bondPerPlayer });
+    } catch (e) {
+      // ignore if already joined/funded or not eligible
+    }
+  });
+
+  // Example: auto-withdraw when claimable > 0
+  setInterval(async () => {
+    const claimable = await contract.claimable(wallet.address);
+    if (claimable > 0n) {
+      await contract.withdraw();
+    }
+  }, 30_000);
+}
+
+agentLoop().catch(console.error);
+```
