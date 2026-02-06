@@ -4,7 +4,8 @@
 - EIP-712 gated game creation with player signatures.
 - Full dispute/challenge flow with house arbitration (uphold/cancel/override).
 - Bond rules for paid vs free games with explicit challenge bond sizing.
-- Extensive unit, fuzz, and simulation tests (27 core tests + 6 gameplay simulations).
+- Extensive unit, fuzz, and simulation tests (28 core tests + 6 gameplay simulations).
+- Threat model and security checklist included in README.
 
 ## Contract Changes
 - Added Disputed status and challenge hooks (`challenge`, `resolveChallengeUphold`, `resolveChallengeCancel`, `resolveChallengeOverride`).
@@ -24,7 +25,7 @@
   - challenge outcomes and payouts
   - claimable monotonicity (with and without withdrawals)
   - event emissions
-- Simulation suite covering realistic gameplay flows.
+- Simulation suite covering realistic gameplay flows (happy path, disputes, expiry).
 
 ## Deployment
 - Added `deploy.sh` and Foundry `Deploy.s.sol` script stub.
