@@ -10,7 +10,7 @@ interface IGroth16Verifier {
         uint256[2] calldata,
         uint256[2][2] calldata,
         uint256[2] calldata,
-        uint256[] calldata
+        uint256[5] calldata
     ) external view returns (bool);
 }
 
@@ -217,13 +217,12 @@ contract RiichiSettlementV1_1 is ReentrancyGuard, EIP712 {
         uint256[2] calldata a,
         uint256[2][2] calldata b,
         uint256[2] calldata c,
-        uint256[] calldata ps
+        uint256[5] calldata ps
     ) external {
         Game storage g = games[gameId];
         require(g.status == GameStatus.Active, "not active");
         require(block.timestamp <= g.settleDeadline, "late");
 
-        require(ps.length >= 5, "signals");
         require(ps[0] == ENGINE_VERSION_HASH, "engine");
         require(ps[1] == uint256(gameId), "game");
         require(ps[4] == 1, "no win");

@@ -13,10 +13,14 @@ broadcast/
 foundry.toml.bak
 
 # Circom
-*.r1cs
-*.sym
-*.json
-*.wasm
+circuits/**/*.r1cs
+circuits/**/*.sym
 
 # OS
 .DS_Store
+
+# Server state
+server/data/
+
+# Logs
+forge_test.log

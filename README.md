@@ -8,6 +8,22 @@
 
 This folder is a complete protocol snapshot.
 
+## Engine Output Hash (Poseidon)
+
+The circuit binds `pubEngineOutputHash` to the witness using Poseidon. Off‑chain must compute the same hash (see `reference/engineHash.ts`).
+
+**Packing (MAX_YAKU = 50)**
+- `chunk0 = [win, shanten, yakuCount, hanTotal, fuTotal, waitsCount, yakuHan[0..9]]`
+- `chunk1 = yakuHan[10..25]`
+- `chunk2 = yakuHan[26..41]`
+- `chunk3 = yakuHan[42..49] + 8 zero pads`
+- `hash = Poseidon([Poseidon(chunk0), Poseidon(chunk1), Poseidon(chunk2), Poseidon(chunk3)])`
+
+**Off‑chain dependency**
+- `reference/engineHash.ts` uses `circomlibjs` to compute the same Poseidon hash as the circuit.
+- The returned hash is a field element encoded as a 32‑byte hex string (fit for `uint256`).
+- If you change `MAX_YAKU` or the packing order, you must update both the circuit and `engineHash.ts`, then regenerate keys.
+
 ## EIP-712 CreateGame Digest (off-chain)
 
 Each player must sign the same typed data for `createGame`. The players array order is **binding** (it is hashed), so all signers must agree on the exact ordering.
@@ -127,6 +143,29 @@ This protocol assumes the zk verifier and circuit are correct and that the `hous
   - Challenge and resolve (uphold/cancel/override).
 - Freeze the final contract address in any client or backend configs.
 
+## Multiplayer Server (Simplified Riichi)
+
+- `server/` hosts open matchmaking (4 seats), 45‑second turns, and a simplified Riichi loop.
+- Simplified rules: no calls (chi/pon/kan), tsumo‑only wins, standard hand + seven‑pairs accepted.
+- Fairness mode: `commit-reveal` (working default) uses per‑player seed commits + reveals to shuffle the deck deterministically.
+- Fairness mode: `mental-poker` uses a WASM‑integrated Ziffle shuffle protocol (verifiable shuffle + reveal tokens).
+  - **N‑of‑N reveal**: all players must provide reveal tokens to decrypt a card.
+  - If a player drops, the game can time out; funds can be recovered on‑chain via `Resolve Timeout` + `Withdraw`.
+- Server‑side proofs are optional; set `AUTO_SETTLE=true` and provide RPC + key config to submit proofs on game end.
+
+### Mental‑Poker WASM Build
+
+```
+cd wasm/ziffle-wasm
+wasm-pack build --target web --release
+```
+
+Copy the output into the frontend (already scaffolded):
+
+```
+cp -R wasm/ziffle-wasm/pkg frontend/wasm/ziffle
+```
+
 ## Agent-Friendly API Snippets
 
 Below are minimal `ethers` (v6) examples to help agents plug in quickly. These assume a deployed `RiichiSettlementV1_1` address and a connected signer.
@@ -199,6 +238,32 @@ await contract.fund(gameId, { value });
 ### 3) Settle (submit proof)
 ```js
 // a, b, c are Groth16 proof elements; ps are public signals
+await contract.settle(gameId, a, b, c, ps);
+```
+
+**Example (wiring `pubEngineOutputHash`)**
+```js
+import { hashEngineOutput } from "./reference/engineHash";
+
+const engineOutput = {
+  win: 1,
+  shanten: 9,
+  yakuCount: 1,
+  yakuHan: [1], // pad to MAX_YAKU off-chain
+  hanTotal: 1,
+  fuTotal: 30,
+  waitsCount: 0,
+};
+
+const engineOutputHash = await hashEngineOutput(engineOutput);
+const ps = [
+  ENGINE_VERSION_HASH,
+  gameId,
+  engineOutputHash,
+  BigInt(winner),
+  1,
+];
+
 await contract.settle(gameId, a, b, c, ps);
 ```
 

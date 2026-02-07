@@ -137,8 +137,7 @@ contract RiichiSettlementTest {
         }
     }
 
-    function _publicSignals(bytes32 gameId, address winner) internal pure returns (uint256[] memory ps) {
-        ps = new uint256[](5);
+    function _publicSignals(bytes32 gameId, address winner) internal pure returns (uint256[5] memory ps) {
         ps[0] = 123;
         ps[1] = uint256(gameId);
         ps[2] = 0;
@@ -150,7 +149,7 @@ contract RiichiSettlementTest {
         uint256[2] memory a;
         uint256[2][2] memory b;
         uint256[2] memory c;
-        uint256[] memory ps = _publicSignals(gameId, winner);
+        uint256[5] memory ps = _publicSignals(gameId, winner);
         settlement.settle(gameId, a, b, c, ps);
     }
 

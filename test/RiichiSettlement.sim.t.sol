@@ -124,7 +124,7 @@ contract RiichiSettlementSimTest {
         uint256[2] memory a;
         uint256[2][2] memory b;
         uint256[2] memory c;
-        uint256[] memory ps = new uint256[](5);
+        uint256[5] memory ps;
         ps[0] = 123;
         ps[1] = uint256(gameId);
         ps[2] = 0;

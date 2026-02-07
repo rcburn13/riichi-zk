@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Riichi zk Settlement</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+  </head>
+  <body>
+    <div class="bg"></div>
+    <main class="page">
+      <nav class="topbar">
+        <div class="brand">
+          <img src="assets/logo.svg" alt="Riichi zk logo" />
+          <div>
+            <p class="brand-name">Riichi zk</p>
+            <p class="brand-sub">AI‑native Mahjong</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="connect" class="btn primary">Connect</button>
+          <button id="switch" class="btn ghost">Base</button>
+        </div>
+      </nav>
+
+      <header class="hero">
+        <div class="board-card live-board">
+          <div id="seatRow" class="seat-row"></div>
+          <div class="table-stage">
+            <div class="table-felt"></div>
+            <div class="discard-pile top" data-seat="2">
+              <h4>Seat 3</h4>
+              <div id="discardSeat2" class="discard-row"></div>
+            </div>
+            <div class="discard-pile right" data-seat="3">
+              <h4>Seat 4</h4>
+              <div id="discardSeat3" class="discard-row"></div>
+            </div>
+            <div class="discard-pile bottom" data-seat="0">
+              <h4>Seat 1</h4>
+              <div id="discardSeat0" class="discard-row"></div>
+            </div>
+            <div class="discard-pile left" data-seat="1">
+              <h4>Seat 2</h4>
+              <div id="discardSeat1" class="discard-row"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Your Hand</label>
+            <div id="handTiles" class="hand-grid hand-rack"></div>
+            <p class="hint">Tap a tile to discard on your turn.</p>
+          </div>
+          <div class="inline">
+            <button id="winBtn" class="btn primary">Declare Win</button>
+          </div>
+        </div>
+        <div class="hero-copy">
+          <p class="eyebrow">Riichi zk Settlement · Base</p>
+          <h1>Play, prove, and settle Mahjong games on‑chain.</h1>
+          <p class="lead">A minimal, consent‑based flow for humans and agents. Create a match, fund it, and settle with a zk proof when the game ends.</p>
+          <div class="pill-row">
+            <span class="pill">Fund: 30m</span>
+            <span class="pill">Settle: 2h</span>
+            <span class="pill">Challenge: 30m</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="status-strip">
+        <div>
+          <span>Wallet</span>
+          <strong id="wallet">Not connected</strong>
+        </div>
+        <div>
+          <span>Network</span>
+          <strong id="network">Unknown</strong>
+        </div>
+        <div>
+          <span>Contract</span>
+          <strong id="contract">0x56081C9F61427cf841cDc07eCBc56bA1bB0B0ca3</strong>
+        </div>
+      </section>
+
+      <section class="panel compact">
+        <div class="panel-head">
+          <h2>Matchmaking + Play</h2>
+          <p>Open queue, 45‑second turns, simplified Riichi for fast matches.</p>
+        </div>
+        <div class="panel-body">
+          <div class="field split">
+            <div>
+              <label>Game Server (WS)</label>
+              <input id="wsUrl" value="wss://YOUR-KOYEB-APP.koyeb.app" />
+            </div>
+            <div>
+              <label>Display Name (optional)</label>
+              <input id="playerName" placeholder="Your name" />
+            </div>
+          </div>
+          <div class="inline">
+            <button id="queueJoin" class="btn primary">Join Queue</button>
+            <button id="queueLeave" class="btn ghost">Leave Queue</button>
+            <button id="readyBtn" class="btn">Ready</button>
+            <button id="resyncBtn" class="btn ghost">Resync</button>
+          </div>
+          <div class="field">
+            <label>Bind Game ID (optional)</label>
+            <div class="inline">
+              <input id="bindGameId" placeholder="0x…" />
+              <button id="bindGameBtn" class="btn small">Bind</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Spectate Room ID</label>
+            <div class="inline">
+              <input id="spectateRoomId" placeholder="room id" />
+              <button id="spectateBtn" class="btn small">Spectate</button>
+            </div>
+          </div>
+          <div class="field split">
+            <div>
+              <label>Room</label>
+              <input id="roomId" readonly />
+            </div>
+            <div>
+              <label>Seat</label>
+              <input id="seatIndex" readonly />
+            </div>
+          </div>
+          <div class="field">
+            <label>Turn Status</label>
+            <input id="turnStatus" readonly />
+          </div>
+          <div id="countdownOverlay" class="countdown hidden">3</div>
+          <div class="turn-timer">
+            <div id="turnTimerBar" class="turn-timer-bar"></div>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="soundToggle" type="checkbox" checked />
+              <span>Sound</span>
+            </label>
+          </div>
+          <div class="field">
+            <label>Match Log</label>
+            <textarea id="matchLog" rows="5" readonly></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-grid">
+        <section class="panel compact">
+          <div class="panel-head">
+            <h2>Create Game</h2>
+            <p>Only essentials. Bond is fixed at 20% of stake.</p>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Game ID</label>
+              <div class="inline">
+                <input id="gameId" placeholder="0x…" />
+                <input id="gameIdSeed" placeholder="match-2026-02-07" />
+                <button id="genGameId" class="btn small">Generate</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Players (2–4)</label>
+              <textarea id="players" rows="2" placeholder="0x...
+0x..."></textarea>
+            </div>
+            <div class="field split">
+              <div>
+                <label>Stake (ETH, 0 or ≥ 0.0005, max 0.01)</label>
+                <input id="stake" type="number" step="0.0001" max="0.01" placeholder="0.01" />
+                <p id="stakeWarn" class="warn"></p>
+              </div>
+              <div>
+                <label>Bond (20% of stake)</label>
+                <input id="bondPreview" readonly />
+                <p id="freeGame" class="hint"></p>
+              </div>
+            </div>
+            <div class="field">
+              <label>Signatures</label>
+              <div class="inline">
+                <button id="sign" class="btn small">Sign</button>
+                <button id="clearSigs" class="btn small ghost">Clear</button>
+              </div>
+              <textarea id="sigs" rows="2" placeholder="Signatures…"></textarea>
+              <div class="inline">
+                <input id="sigManual" placeholder="Paste another signature" />
+                <button id="addSig" class="btn small">Add</button>
+              </div>
+            </div>
+            <details class="details">
+              <summary>Signing details</summary>
+              <div class="field">
+                <label>Players Hash</label>
+                <div class="inline">
+                  <input id="playersHash" readonly />
+                  <button id="calcPlayersHash" class="btn small">Compute</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>EIP‑712 Digest</label>
+                <div class="inline">
+                  <input id="digest" readonly />
+                  <button id="calcDigest" class="btn small">Compute</button>
+                </div>
+              </div>
+            </details>
+            <button id="createGame" class="btn primary">Create Game</button>
+          </div>
+        </section>
+
+        <section class="panel compact">
+          <div class="panel-head">
+            <h2>Join + Fund</h2>
+            <p>Stake max 0.01. Bond is auto‑calculated.</p>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Game ID</label>
+              <input id="joinGameId" placeholder="0x…" />
+            </div>
+            <div class="field split">
+              <div>
+                <label>Stake (ETH, 0 or ≥ 0.0005, max 0.01)</label>
+                <input id="joinStake" type="number" step="0.0001" max="0.01" placeholder="0.01" />
+                <p id="joinStakeWarn" class="warn"></p>
+              </div>
+              <div>
+                <label>Bond (20% of stake)</label>
+                <input id="joinBondPreview" readonly />
+                <p id="joinFreeGame" class="hint"></p>
+              </div>
+            </div>
+            <div class="field">
+              <label>Total</label>
+              <input id="fundTotal" readonly />
+            </div>
+            <div class="inline">
+              <button id="join" class="btn">Join</button>
+              <button id="fund" class="btn primary">Fund</button>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel compact">
+        <div class="panel-head">
+          <h2>Finalize + Withdraw</h2>
+          <p>Finalize after the challenge window, then withdraw.</p>
+        </div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Game ID</label>
+            <input id="finalizeGameId" placeholder="0x…" />
+          </div>
+          <div class="inline">
+            <button id="finalize" class="btn">Finalize</button>
+            <button id="resolveWithdraw" class="btn ghost">Resolve + Withdraw</button>
+          </div>
+          <div class="divider"></div>
+          <div class="field">
+            <label>Claimable</label>
+            <div class="inline">
+              <input id="claimable" readonly />
+              <button id="refreshClaimable" class="btn small">Refresh</button>
+            </div>
+          </div>
+          <button id="withdraw" class="btn primary">Withdraw</button>
+        </div>
+      </section>
+
+      <details class="panel advanced">
+        <summary>Admin / Proof Tools</summary>
+        <div class="panel-body advanced-grid">
+          <div>
+            <h3>Settle with Proof</h3>
+            <p class="muted">Paste snarkjs proof + public signals.</p>
+            <div class="field">
+              <label>Game ID</label>
+              <input id="settleGameId" placeholder="0x…" />
+            </div>
+            <div class="field">
+              <label>proof.json (snarkjs)</label>
+              <textarea id="proofJson" rows="6"></textarea>
+            </div>
+            <div class="field">
+              <label>public.json (snarkjs)</label>
+              <textarea id="publicJson" rows="3"></textarea>
+            </div>
+            <div class="field">
+              <label>Parsed a, b, c, ps</label>
+              <textarea id="parsedProof" rows="5" readonly></textarea>
+            </div>
+            <div class="inline">
+              <button id="parseProof" class="btn small">Parse</button>
+              <button id="settle" class="btn primary">Settle</button>
+            </div>
+          </div>
+          <div>
+            <h3>Challenge</h3>
+            <div class="field">
+              <label>Game ID</label>
+              <input id="challengeGameId" placeholder="0x…" />
+            </div>
+            <div class="field">
+              <label>Reason</label>
+              <input id="challengeReason" placeholder="e.g. invalid proof" />
+            </div>
+            <div class="field">
+              <label>Reason Hash</label>
+              <div class="inline">
+                <input id="reasonHash" readonly />
+                <button id="calcReasonHash" class="btn small">Hash</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Challenge Bond</label>
+              <div class="inline">
+                <input id="challengeBond" readonly />
+                <button id="fetchBond" class="btn small">Fetch</button>
+              </div>
+            </div>
+            <button id="challenge" class="btn primary">Challenge</button>
+          </div>
+          <div>
+            <h3>Resolve (House Only)</h3>
+            <div class="field">
+              <label>Game ID</label>
+              <input id="resolveGameId" placeholder="0x…" />
+            </div>
+            <div class="field">
+              <label>New Winner</label>
+              <input id="overrideWinner" placeholder="0x…" />
+            </div>
+            <div class="inline">
+              <button id="resolveUphold" class="btn">Uphold</button>
+              <button id="resolveCancel" class="btn ghost">Cancel</button>
+              <button id="resolveOverride" class="btn primary">Override</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <footer class="foot">
+        <div class="foot-links">
+          <a href="https://x.com/MahjongDepolyer" target="_blank" rel="noopener">X / MahjongDeployer</a>
+        </div>
+        <p>Tip: If you run the proof pipeline locally, use `scripts/prove_example.sh` and paste the generated `proof.json` + `public.json` here.</p>
+      </footer>
+    </main>
+
+    <div id="toast" class="toast"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
