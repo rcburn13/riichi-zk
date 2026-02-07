@@ -24,3 +24,6 @@ server/data/
 
 # Logs
 forge_test.log
+
+# Rust build
+wasm/ziffle-wasm/target/
