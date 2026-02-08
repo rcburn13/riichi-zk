@@ -401,6 +401,12 @@ textarea { resize: vertical; }
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
+.hand-tile.demo {
+  opacity: 0.6;
+  cursor: default;
+  pointer-events: none;
+}
+
 .hand-tile:hover {
   transform: translateY(-4px) rotate(-1deg);
   box-shadow: 0 8px 14px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(0,0,0,0.15);
@@ -514,6 +520,15 @@ textarea { resize: vertical; }
     radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 45%),
     radial-gradient(circle at 70% 70%, rgba(255,255,255,0.05), transparent 45%),
     linear-gradient(180deg, #1f6b4a, #17543a);
+}
+
+.table-felt::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06), transparent 40%);
+  animation: feltShimmer 9s linear infinite;
+  pointer-events: none;
 }
 
 .discard-pile {
