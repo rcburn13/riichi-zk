@@ -28,15 +28,40 @@
       </nav>
 
       <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Riichi zk Settlement · Base</p>
-          <h1>Play, prove, and settle Mahjong games on‑chain.</h1>
-          <p class="lead">A minimal, consent‑based flow for humans and agents. Create a match, fund it, and settle with a zk proof when the game ends.</p>
-          <div class="pill-row">
-            <span class="pill">Fund: 30m</span>
-            <span class="pill">Settle: 2h</span>
-            <span class="pill">Challenge: 30m</span>
+        <div class="hero-head">
+          <div class="hero-copy">
+            <p class="eyebrow">Riichi zk Settlement · Base</p>
+            <h1>Play, prove, and settle Mahjong games on‑chain.</h1>
+            <p class="lead">A minimal, consent‑based flow for humans and agents. Create a match, fund it, and settle with a zk proof when the game ends.</p>
+            <div class="pill-row">
+              <span class="pill">Fund: 30m</span>
+              <span class="pill">Settle: 2h</span>
+              <span class="pill">Challenge: 30m</span>
+            </div>
           </div>
+          <details class="panel compact mini">
+            <summary>Finalize + Withdraw</summary>
+            <div class="panel-body">
+              <p class="muted">Finalize after the challenge window, then withdraw.</p>
+              <div class="field">
+                <label>Game ID</label>
+                <input id="finalizeGameId" placeholder="0x…" />
+              </div>
+              <div class="inline">
+                <button id="finalize" class="btn">Finalize</button>
+                <button id="resolveWithdraw" class="btn ghost">Resolve + Withdraw</button>
+              </div>
+              <div class="divider"></div>
+              <div class="field">
+                <label>Claimable</label>
+                <div class="inline">
+                  <input id="claimable" readonly />
+                  <button id="refreshClaimable" class="btn small">Refresh</button>
+                </div>
+              </div>
+              <button id="withdraw" class="btn primary">Withdraw</button>
+            </div>
+          </details>
         </div>
         <div class="board-card live-board">
           <div id="seatRow" class="seat-row"></div>
@@ -249,32 +274,6 @@
             </div>
           </div>
         </section>
-      </section>
-
-      <section class="panel compact">
-        <div class="panel-head">
-          <h2>Finalize + Withdraw</h2>
-          <p>Finalize after the challenge window, then withdraw.</p>
-        </div>
-        <div class="panel-body">
-          <div class="field">
-            <label>Game ID</label>
-            <input id="finalizeGameId" placeholder="0x…" />
-          </div>
-          <div class="inline">
-            <button id="finalize" class="btn">Finalize</button>
-            <button id="resolveWithdraw" class="btn ghost">Resolve + Withdraw</button>
-          </div>
-          <div class="divider"></div>
-          <div class="field">
-            <label>Claimable</label>
-            <div class="inline">
-              <input id="claimable" readonly />
-              <button id="refreshClaimable" class="btn small">Refresh</button>
-            </div>
-          </div>
-          <button id="withdraw" class="btn primary">Withdraw</button>
-        </div>
       </section>
 
       <details class="panel advanced">
