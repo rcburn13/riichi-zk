@@ -53,6 +53,16 @@ const TILE_NAMES = [
 
 let countdownTimer = null;
 let gameActive = false;
+let pendingGameId = null;
+const GAME_ID_FIELDS = [
+  "joinGameId",
+  "finalizeGameId",
+  "settleGameId",
+  "challengeGameId",
+  "resolveGameId",
+  "statusGameId",
+  "bindGameId",
+];
 
 async function connect() {
   if (!window.ethereum) {
@@ -124,6 +134,36 @@ function parseBytes32(value, label) {
   return value;
 }
 
+function randomBytes32() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return "0x" + Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function syncGameIdFields(gameId, { force = false } = {}) {
+  GAME_ID_FIELDS.forEach((id) => {
+    const field = el(id);
+    if (!field) return;
+    if (force || !field.value) field.value = gameId;
+  });
+}
+
+function ensureGameId() {
+  if (!pendingGameId) {
+    pendingGameId = randomBytes32();
+    const display = el("gameIdAuto");
+    if (display) display.textContent = pendingGameId;
+    logMatch(`Auto gameId generated: ${pendingGameId}`);
+    syncGameIdFields(pendingGameId);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("gameId", pendingGameId);
+      history.replaceState({}, "", url.toString());
+    } catch (_) {}
+  }
+  return pendingGameId;
+}
+
 function parseUint(id) {
   const v = el(id).value.trim();
   if (!v) return 0n;
@@ -142,7 +182,7 @@ async function computePlayersHash() {
 async function computeDigest() {
   if (!signer) throw new Error("Connect wallet first");
   const players = parsePlayers();
-  const gameId = parseBytes32(el("gameId").value.trim(), "Game ID");
+  const gameId = ensureGameId();
   const playersHash = await computePlayersHash();
   const stakePerPlayer = getCreateStake(true);
   const bondPerPlayer = calcBond(stakePerPlayer);
@@ -190,7 +230,7 @@ async function signTypedData() {
 
 async function createGame() {
   if (!contract) throw new Error("Connect wallet first");
-  const gameId = parseBytes32(el("gameId").value.trim(), "Game ID");
+  const gameId = ensureGameId();
   const players = parsePlayers();
   const sigs = el("sigs").value.split("\n").map((s) => s.trim()).filter(Boolean);
   const stakePerPlayer = getCreateStake(true);
@@ -207,6 +247,20 @@ async function createGame() {
     CHALLENGE_WINDOW
   );
   await tx.wait();
+  const shareUrl = (() => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("gameId", gameId);
+      return url.toString();
+    } catch (_) {
+      return gameId;
+    }
+  })();
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(shareUrl).catch(() => {});
+  }
+  logMatch(`Game created: ${gameId}`);
+  logMatch(`Share link copied: ${shareUrl}`);
   toast("Game created");
 }
 
@@ -352,12 +406,6 @@ function calcReasonHash() {
   el("reasonHash").value = ethers.keccak256(ethers.toUtf8Bytes(reason));
 }
 
-function genGameId() {
-  const seed = el("gameIdSeed").value.trim();
-  if (!seed) return;
-  el("gameId").value = ethers.keccak256(ethers.toUtf8Bytes(seed));
-}
-
 async function fetchBond() {
   const gameId = parseBytes32(el("challengeGameId").value.trim(), "Game ID");
   const bond = await contract.challengeBond(gameId);
@@ -403,7 +451,6 @@ function bindEvents() {
   el("statusCheck").addEventListener("click", () => statusCheck().catch(err => toast(err.message)));
   el("joinStake").addEventListener("input", () => getJoinStake(false));
   el("stake").addEventListener("input", () => getCreateStake(false));
-  el("genGameId").addEventListener("click", genGameId);
   const queueJoin = el("queueJoin");
   if (queueJoin) queueJoin.addEventListener("click", () => joinQueue().catch(err => toast(err.message)));
   const queueLeave = el("queueLeave");
@@ -436,6 +483,19 @@ function bindEvents() {
 }
 
 bindEvents();
+(() => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get("gameId");
+    if (fromUrl && ethers.isHexString(fromUrl, 32)) {
+      pendingGameId = fromUrl;
+      const display = el("gameIdAuto");
+      if (display) display.textContent = pendingGameId;
+      syncGameIdFields(pendingGameId, { force: false });
+      logMatch(`Loaded gameId from link: ${pendingGameId}`);
+    }
+  } catch (_) {}
+})();
 function formatEtherTrim(wei) {
   const s = ethers.formatEther(wei);
   return s.includes(".") ? s.replace(/\.?0+$/, "") : s;

@@ -96,6 +96,12 @@ body {
   align-items: start;
 }
 
+.hero-tools {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+}
+
 .hero h1 {
   font-family: "Shippori Mincho", serif;
   font-size: clamp(2rem, 4vw, 3rem);
@@ -721,6 +727,12 @@ textarea { resize: vertical; }
 }
 
 .muted { color: var(--muted); font-size: 0.85rem; }
+.mono {
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  color: #e6d5b6;
+  word-break: break-all;
+}
 
 .advanced summary { font-weight: 600; cursor: pointer; }
 

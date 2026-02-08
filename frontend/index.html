@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Riichi zk Settlement</title>
+    <title>ZkRiichi</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
@@ -39,33 +39,75 @@
               <span class="pill">Challenge: 30m</span>
             </div>
           </div>
-          <details class="panel compact mini">
-            <summary>
-              <span>Finalize</span>
-              <span class="summary-sep">/</span>
-              <span>Withdraw</span>
-            </summary>
-            <div class="panel-body">
-              <p class="muted">Finalize after the challenge window, then withdraw.</p>
-              <div class="field">
-                <label>Game ID</label>
-                <input id="finalizeGameId" placeholder="0x…" />
-              </div>
-              <div class="inline">
-                <button id="finalize" class="btn">Finalize</button>
-                <button id="resolveWithdraw" class="btn ghost">Resolve + Withdraw</button>
-              </div>
-              <div class="divider"></div>
-              <div class="field">
-                <label>Claimable</label>
-                <div class="inline">
-                  <input id="claimable" readonly />
-                  <button id="refreshClaimable" class="btn small">Refresh</button>
+          <div class="hero-tools">
+            <details class="panel compact mini">
+              <summary>
+                <span>Finalize</span>
+                <span class="summary-sep">/</span>
+                <span>Withdraw</span>
+              </summary>
+              <div class="panel-body">
+                <p class="muted">Finalize after the challenge window, then withdraw.</p>
+                <div class="field">
+                  <label>Game ID</label>
+                  <input id="finalizeGameId" placeholder="0x…" />
                 </div>
+                <div class="inline">
+                  <button id="finalize" class="btn">Finalize</button>
+                  <button id="resolveWithdraw" class="btn ghost">Resolve + Withdraw</button>
+                </div>
+                <div class="divider"></div>
+                <div class="field">
+                  <label>Claimable</label>
+                  <div class="inline">
+                    <input id="claimable" readonly />
+                    <button id="refreshClaimable" class="btn small">Refresh</button>
+                  </div>
+                </div>
+                <button id="withdraw" class="btn primary">Withdraw</button>
               </div>
-              <button id="withdraw" class="btn primary">Withdraw</button>
-            </div>
-          </details>
+            </details>
+            <details class="panel compact mini">
+              <summary>
+                <span>Spectate</span>
+                <span class="summary-sep">/</span>
+                <span>Status</span>
+              </summary>
+              <div class="panel-body">
+                <div class="field">
+                  <label>Spectate Room ID</label>
+                  <div class="inline">
+                    <input id="spectateRoomId" placeholder="room id" />
+                    <button id="spectateBtn" class="btn small">Spectate</button>
+                  </div>
+                </div>
+                <div class="field split">
+                  <div>
+                    <label>Room</label>
+                    <input id="roomId" readonly />
+                  </div>
+                  <div>
+                    <label>Seat</label>
+                    <input id="seatIndex" readonly />
+                  </div>
+                </div>
+              <div class="field">
+                <label>Turn Status</label>
+                <input id="turnStatus" readonly />
+              </div>
+              <div class="toggle-row">
+                <label class="toggle">
+                  <input id="soundToggle" type="checkbox" checked />
+                  <span>Sound</span>
+                </label>
+              </div>
+              <div class="field">
+                <label>Match Log</label>
+                <textarea id="matchLog" rows="5" readonly></textarea>
+              </div>
+              </div>
+            </details>
+          </div>
         </div>
         <div class="board-card live-board">
           <div id="seatRow" class="seat-row"></div>
@@ -122,47 +164,9 @@
             <button id="readyBtn" class="btn">Ready</button>
             <button id="resyncBtn" class="btn ghost">Resync</button>
           </div>
-          <div class="field">
-            <label>Bind Game ID (optional)</label>
-            <div class="inline">
-              <input id="bindGameId" placeholder="0x…" />
-              <button id="bindGameBtn" class="btn small">Bind</button>
-            </div>
-          </div>
-          <div class="field">
-            <label>Spectate Room ID</label>
-            <div class="inline">
-              <input id="spectateRoomId" placeholder="room id" />
-              <button id="spectateBtn" class="btn small">Spectate</button>
-            </div>
-          </div>
-          <div class="field split">
-            <div>
-              <label>Room</label>
-              <input id="roomId" readonly />
-            </div>
-            <div>
-              <label>Seat</label>
-              <input id="seatIndex" readonly />
-            </div>
-          </div>
-          <div class="field">
-            <label>Turn Status</label>
-            <input id="turnStatus" readonly />
-          </div>
           <div id="countdownOverlay" class="countdown hidden">3</div>
           <div class="turn-timer">
             <div id="turnTimerBar" class="turn-timer-bar"></div>
-          </div>
-          <div class="toggle-row">
-            <label class="toggle">
-              <input id="soundToggle" type="checkbox" checked />
-              <span>Sound</span>
-            </label>
-          </div>
-          <div class="field">
-            <label>Match Log</label>
-            <textarea id="matchLog" rows="5" readonly></textarea>
           </div>
         </div>
       </section>
@@ -176,11 +180,7 @@
           <div class="panel-body">
             <div class="field">
               <label>Game ID</label>
-              <div class="inline">
-                <input id="gameId" placeholder="0x…" />
-                <input id="gameIdSeed" placeholder="match-2026-02-07" />
-                <button id="genGameId" class="btn small">Generate</button>
-              </div>
+              <p class="hint">Auto‑generated on sign/create. A share link is copied after creation.</p>
             </div>
             <div class="field">
               <label>Players (2–4)</label>
