@@ -120,6 +120,21 @@ async function connect() {
   }
   await requestAccounts();
   provider = new ethers.BrowserProvider(window.ethereum);
+  
+  // Check if we're on the correct chain, switch to Base if not
+  const network = await provider.getNetwork();
+  if (network.chainId !== BASE_CHAIN_ID) {
+    toast("Switching to Base network...");
+    try {
+      await switchToBase();
+      // Refresh provider after chain switch
+      provider = new ethers.BrowserProvider(window.ethereum);
+    } catch (error) {
+      toast("Failed to switch to Base network. Please switch manually.");
+      return;
+    }
+  }
+  
   signer = await provider.getSigner();
   currentAddress = await signer.getAddress();
   contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
