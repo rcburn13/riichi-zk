@@ -1,5 +1,10 @@
 # Riichi zk Settlement (v1.1)
 
+- **Live Demo:** (add your Netlify URL)
+- **Contract (Base):** `0x56081C9F61427cf841cDc07eCBc56bA1bB0B0ca3`
+- **Game Server (WS):** `wss://recent-allene-darklings-418334c8.koyeb.app`
+- **Repo:** https://github.com/rcburn13/riichi-zk
+
 - Peer-to-peer Mahjong settlement
 - zk-proof verified outcomes
 - Liveness + bonds + slashing
@@ -7,6 +12,22 @@
 - Engine-output hash binding
 
 This folder is a complete protocol snapshot.
+
+## Quickstart (Local)
+
+**Server**
+```
+cd server
+npm install
+npm run dev
+```
+
+**Frontend (static)**
+```
+cd frontend
+python3 -m http.server 4173
+```
+Open `http://localhost:4173` and set the Game Server (WS) to `ws://localhost:8787`.
 
 ## Engine Output Hash (Poseidon)
 
@@ -122,7 +143,7 @@ This protocol assumes the zk verifier and circuit are correct and that the `hous
 - Challenge hook enabled with bounded window and explicit outcomes.
 - Free games must have `stake=0` and `bond=0`; paid games must have `bond>0`.
 - ZK verifier address and engine version hash are immutable.
-- Fuzz + simulation tests passing (`forge test`).
+- Fuzz + simulation tests included; run `forge test` to verify.
 
 **Operational reminders**
 - Verify the zk circuit/verifier pair before deployment.
