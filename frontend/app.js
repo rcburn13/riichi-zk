@@ -554,10 +554,6 @@ function bindEvents() {
   if (spectateBtn) spectateBtn.addEventListener("click", () => spectateRoom().catch(err => toast(err.message)));
   const resyncBtn = el("resyncBtn");
   if (resyncBtn) resyncBtn.addEventListener("click", () => requestSync().catch(err => toast(err.message)));
-  const readyBtn = el("readyBtn");
-  if (readyBtn) readyBtn.addEventListener("click", () => toggleReady().catch(err => toast(err.message)));
-  const bindBtn = el("bindGameBtn");
-  if (bindBtn) bindBtn.addEventListener("click", () => bindGame().catch(err => toast(err.message)));
   const discardBtn = el("discardBtn");
   if (discardBtn) discardBtn.addEventListener("click", () => sendDiscard().catch(err => toast(err.message)));
   const winBtn = el("winBtn");
@@ -1642,31 +1638,4 @@ async function sendWin() {
   updateActionButtons();
 }
 
-async function toggleReady() {
-  await ensureGameWs();
-  if (gameState.seat === null || gameState.seat === undefined) {
-    throw new Error("Waiting for a seat assignment");
-  }
-  const current = !!gameState.ready[gameState.seat];
-  const next = !current;
-  gameState.ready[gameState.seat] = next;
-  updateReadyButton();
-  sendWs("READY_SET", { ready: next });
-  logMatch(next ? "Ready." : "Not ready.");
-}
-
-function updateReadyButton() {
-  const btn = el("readyBtn");
-  if (!btn) return;
-  const seated = gameState.seat !== null && gameState.seat !== undefined;
-  const canReady = gameState.phase === "READY" || gameState.phase === "COUNTDOWN" || gameState.phase === null;
-  btn.disabled = !seated || !gameWs || !canReady;
-  if (!seated) {
-    btn.textContent = "Ready";
-    return;
-  }
-  const isReady = !!gameState.ready[gameState.seat];
-  btn.textContent = isReady ? "Unready" : "Ready";
-  btn.classList.toggle("primary", !isReady);
-  btn.classList.toggle("ghost", isReady);
-}
+function updateReadyButton() {}
