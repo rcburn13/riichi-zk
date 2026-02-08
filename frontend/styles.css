@@ -281,21 +281,6 @@ body {
   font-size: 0.78rem;
 }
 
-.proof-tip {
-  margin: 10px 0 22px;
-  background: rgba(212, 161, 79, 0.12);
-  border: 1px dashed rgba(212, 161, 79, 0.4);
-  border-radius: 14px;
-  padding: 10px 14px;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.proof-tip code {
-  font-family: "Space Grotesk", system-ui, sans-serif;
-  font-size: 0.8rem;
-  color: #f2d7a4;
-}
 
 .panel-grid {
   display: grid;
