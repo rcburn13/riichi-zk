@@ -9,6 +9,7 @@ const STAKE_STEP_WEI = ethers.parseUnits("0.0001", 18);
 const BOND_RATIO_NUM = 1n;
 const BOND_RATIO_DEN = 5n;
 const ROOM_STORAGE_KEY = "riichi_room_id";
+const DEFAULT_ROOM_SIZE = 2;
 
 const ABI = [
   "function createGame(bytes32 gameId,address[] players,bytes[] sigs,uint256 stakePerPlayer,uint256 bondPerPlayer,uint256 fundDuration,uint256 settleDuration,uint256 challengeWindow) external",
@@ -545,10 +546,10 @@ function bindEvents() {
   el("statusCheck").addEventListener("click", () => statusCheck().catch(err => toast(err.message)));
   el("joinStake").addEventListener("input", () => getJoinStake(false));
   el("stake").addEventListener("input", () => getCreateStake(false));
-  const queueJoin = el("queueJoin");
-  if (queueJoin) queueJoin.addEventListener("click", () => joinQueue().catch(err => toast(err.message)));
-  const queueLeave = el("queueLeave");
-  if (queueLeave) queueLeave.addEventListener("click", () => leaveQueue().catch(err => toast(err.message)));
+  const roomCreate = el("roomCreate");
+  if (roomCreate) roomCreate.addEventListener("click", () => createRoom().catch(err => toast(err.message)));
+  const roomJoin = el("roomJoin");
+  if (roomJoin) roomJoin.addEventListener("click", () => joinRoom().catch(err => toast(err.message)));
   const spectateBtn = el("spectateBtn");
   if (spectateBtn) spectateBtn.addEventListener("click", () => spectateRoom().catch(err => toast(err.message)));
   const resyncBtn = el("resyncBtn");
@@ -585,10 +586,14 @@ setQueueState(false);
     const fromUrl = params.get("gameId");
     if (fromUrl && ethers.isHexString(fromUrl, 32)) {
       pendingGameId = fromUrl;
-      const display = el("gameIdAuto");
-      if (display) display.textContent = pendingGameId;
       syncGameIdFields(pendingGameId, { force: false });
       logMatch(`Loaded gameId from link: ${pendingGameId}`);
+    }
+    const roomFromUrl = params.get("roomId");
+    if (roomFromUrl) {
+      const joinEl = el("joinRoomId");
+      if (joinEl) joinEl.value = roomFromUrl;
+      storeRoomId(roomFromUrl);
     }
   } catch (_) {}
 })();
@@ -739,6 +744,15 @@ function logMatch(msg) {
 function storeRoomId(roomId) {
   try {
     if (roomId) localStorage.setItem(ROOM_STORAGE_KEY, roomId);
+  } catch (_) {}
+  const joinEl = el("joinRoomId");
+  if (joinEl) joinEl.value = roomId || "";
+  try {
+    if (roomId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("roomId", roomId);
+      history.replaceState({}, "", url.toString());
+    }
   } catch (_) {}
 }
 
@@ -1287,6 +1301,10 @@ async function ensureGameWs() {
           sendWs("BIND_GAME", { gameId: autoId });
           logMatch(`Room bound to game ${autoId}`);
         }
+        if (!payload.rejoined) {
+          sendWs("READY_SET", { ready: true });
+          logMatch("Auto-ready enabled.");
+        }
         if (payload.rejoined) {
           toast("Rejoined room");
         }
@@ -1372,6 +1390,12 @@ async function ensureGameWs() {
       case "READY_STATE":
         if (Array.isArray(payload.ready)) {
           gameState.ready = payload.ready.slice();
+          if (Array.isArray(payload.players)) {
+            gameState.playerCount = payload.players.length;
+            if (gameState.discards.length < gameState.playerCount) {
+              gameState.discards = Array.from({ length: gameState.playerCount }, (_, i) => gameState.discards[i] || []);
+            }
+          }
           setTurnSeat(gameState.currentTurnSeat);
           updateReadyButton();
         }
@@ -1541,6 +1565,20 @@ async function leaveQueue() {
   sendWs("QUEUE_LEAVE", {});
   logMatch("Left queue.");
   setQueueState(false);
+}
+
+async function createRoom() {
+  await ensureGameWs();
+  sendWs("ROOM_CREATE", { maxPlayers: DEFAULT_ROOM_SIZE });
+  logMatch(`Creating room (${DEFAULT_ROOM_SIZE} players)...`);
+}
+
+async function joinRoom() {
+  await ensureGameWs();
+  const roomId = el("joinRoomId")?.value.trim();
+  if (!roomId) throw new Error("Enter a room ID to join");
+  sendWs("ROOM_JOIN", { roomId });
+  logMatch(`Joining room ${roomId}...`);
 }
 
 async function spectateRoom() {

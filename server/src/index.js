@@ -99,6 +99,7 @@ function hydratePendingReveal(items, playerCount) {
 function serializeRoom(room) {
   return {
     id: room.id,
+    maxPlayers: room.maxPlayers,
     phase: room.phase,
     playerMeta: room.playerMeta,
     gameId: room.gameId,
@@ -132,6 +133,7 @@ function hydrateRoom(data) {
     players: new Array(playerCount).fill(null),
     playerMeta: Array.isArray(data.playerMeta) ? data.playerMeta : [],
     spectators: new Set(),
+    maxPlayers: Math.max(Number(data.maxPlayers || 0) || playerCount || MATCH_SIZE, playerCount || 0),
     phase: data.phase || "READY",
     log: Array.isArray(data.log) ? data.log : [],
     seeds: {
@@ -347,12 +349,13 @@ function broadcastRoom(room, msg) {
   }
 }
 
-function makeRoom(playerIds) {
+function makeRoom(playerIds, maxPlayers = MATCH_SIZE) {
   return {
     id: nanoid(8),
     players: playerIds,
     playerMeta: playerIds.map(() => ({ address: null, name: null })),
     spectators: new Set(),
+    maxPlayers,
     phase: "READY",
     log: [],
     seeds: {
@@ -378,6 +381,31 @@ function makeRoom(playerIds) {
       pendingReveal: new Map(),
     },
   };
+}
+
+function addPlayerToRoom(room, client) {
+  const seat = room.players.length;
+  room.players.push(client.id);
+  room.playerMeta.push({ address: client.address || null, name: client.name || null });
+  room.seeds.commits.push(null);
+  room.seeds.reveals.push(null);
+  room.discards.push([]);
+  room.ready.push(false);
+  room.timeouts.push(0);
+  if (Array.isArray(room.hands)) room.hands.push([]);
+  room.mp.keygen.push(null);
+  room.mp.shuffleAcks.push(false);
+  return seat;
+}
+
+function cancelCountdown(room) {
+  if (room.phase !== "COUNTDOWN") return;
+  room.phase = "READY";
+  if (room.countdownTimer) clearTimeout(room.countdownTimer);
+  room.countdownTimer = null;
+  room.countdownEndsAt = null;
+  logEvent(room, "Countdown canceled.");
+  broadcastRoom(room, { type: "COUNTDOWN_CANCEL" });
 }
 
 function buildRejoinMessage(roomId, address, nonce) {
@@ -409,6 +437,8 @@ function sendRoomAssigned(client, room, seat, rejoined = false) {
       roomId: room.id,
       seat,
       players: playerLabels(room),
+      gameId: room.gameId,
+      maxPlayers: room.maxPlayers,
       rejoined,
     },
   });
@@ -430,7 +460,7 @@ function tryMatchmake() {
     });
     broadcastRoom(room, {
       type: "READY_STATE",
-      payload: { ready: room.ready.slice() },
+      payload: { ready: room.ready.slice(), players: playerLabels(room) },
     });
     scheduleSave();
   }
@@ -793,7 +823,7 @@ function handleReadySet(client, payload) {
   if (client.seat === null || client.seat === undefined) throw new Error("Missing seat");
   room.ready[client.seat] = !!payload?.ready;
   const readyList = room.ready.slice();
-  broadcastRoom(room, { type: "READY_STATE", payload: { ready: readyList } });
+  broadcastRoom(room, { type: "READY_STATE", payload: { ready: readyList, players: playerLabels(room) } });
 
   const allReady = readyList.every(Boolean);
   if (allReady && room.phase !== "COUNTDOWN") {
@@ -993,6 +1023,41 @@ function handleBindGame(client, payload) {
   broadcastRoom(room, { type: "GAME_BOUND", payload: { gameId: room.gameId } });
 }
 
+function handleRoomCreate(client, payload) {
+  if (client.roomId) throw new Error("Already in room");
+  let maxPlayers = Number(payload?.maxPlayers || MATCH_SIZE);
+  if (!Number.isFinite(maxPlayers)) maxPlayers = MATCH_SIZE;
+  maxPlayers = Math.min(Math.max(Math.floor(maxPlayers), 2), 4);
+  const room = makeRoom([client.id], maxPlayers);
+  rooms.set(room.id, room);
+  client.roomId = room.id;
+  client.seat = 0;
+  room.playerMeta[0] = { address: client.address || null, name: client.name || null };
+  logEvent(room, `Room created (max ${maxPlayers}).`);
+  sendRoomAssigned(client, room, 0, false);
+  broadcastRoom(room, { type: "READY_STATE", payload: { ready: room.ready.slice(), players: playerLabels(room) } });
+  scheduleSave();
+}
+
+function handleRoomJoin(client, payload) {
+  if (client.roomId) throw new Error("Already in room");
+  const roomId = payload?.roomId;
+  if (!roomId) throw new Error("Missing roomId");
+  const room = rooms.get(roomId);
+  if (!room) throw new Error("Room not found");
+  if (room.players.length >= room.maxPlayers) throw new Error("Room full");
+  if (room.phase !== "READY" && room.phase !== "COUNTDOWN") throw new Error("Game already started");
+  if (room.phase === "COUNTDOWN") cancelCountdown(room);
+
+  const seat = addPlayerToRoom(room, client);
+  client.roomId = room.id;
+  client.seat = seat;
+  logEvent(room, `Seat ${seat + 1} joined.`);
+  sendRoomAssigned(client, room, seat, false);
+  broadcastRoom(room, { type: "READY_STATE", payload: { ready: room.ready.slice(), players: playerLabels(room) } });
+  scheduleSave();
+}
+
 function sendReplayLog(client, room) {
   send(client.ws, { type: "REPLAY_LOG", payload: { lines: room.log.slice() } });
 }
@@ -1170,6 +1235,12 @@ wss.on("connection", (ws) => {
           }
           break;
         }
+        case "ROOM_CREATE":
+          handleRoomCreate(client, payload);
+          break;
+        case "ROOM_JOIN":
+          handleRoomJoin(client, payload);
+          break;
         case "QUEUE_JOIN": {
           if (client.roomId) throw new Error("Already in room");
           if (!queue.includes(client)) queue.push(client);

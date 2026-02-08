@@ -159,8 +159,8 @@
 
       <section class="panel compact">
         <div class="panel-head">
-          <h2>Matchmaking + Play</h2>
-          <p>Open queue, 45‑second turns, simplified Riichi for fast matches.</p>
+          <h2>Direct Rooms</h2>
+          <p>Create a room, share the Room ID, and start playing.</p>
         </div>
         <div class="panel-body">
           <div class="field split">
@@ -173,9 +173,13 @@
               <input id="playerName" placeholder="Your name" />
             </div>
           </div>
+          <div class="field">
+            <label>Room ID</label>
+            <input id="joinRoomId" placeholder="room id" />
+          </div>
           <div class="inline">
-            <button id="queueJoin" class="btn primary">Join Queue</button>
-            <button id="queueLeave" class="btn ghost">Leave Queue</button>
+            <button id="roomCreate" class="btn primary">Create Room</button>
+            <button id="roomJoin" class="btn ghost">Join Room</button>
             <button id="readyBtn" class="btn">Ready</button>
             <button id="resyncBtn" class="btn ghost">Resync</button>
           </div>
