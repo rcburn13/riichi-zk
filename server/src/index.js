@@ -29,6 +29,7 @@ const FAIRNESS_MODE = process.env.FAIRNESS_MODE || "commit-reveal";
 const IS_MENTAL_POKER = FAIRNESS_MODE === "mental-poker";
 const ALLOW_STUB_CRYPTO = process.env.ALLOW_STUB_CRYPTO !== "false";
 const AUTO_SETTLE = process.env.AUTO_SETTLE === "true";
+const MATCH_SIZE = Number(process.env.MATCH_SIZE || 2);
 
 const RPC_URL = process.env.RPC_URL || "";
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
@@ -414,8 +415,8 @@ function sendRoomAssigned(client, room, seat, rejoined = false) {
 }
 
 function tryMatchmake() {
-  while (queue.length >= 4) {
-    const group = queue.splice(0, 4);
+  while (queue.length >= MATCH_SIZE) {
+    const group = queue.splice(0, MATCH_SIZE);
     const room = makeRoom(group.map((c) => c.id));
     rooms.set(room.id, room);
     group.forEach((client, idx) => {
@@ -1172,14 +1173,14 @@ wss.on("connection", (ws) => {
         case "QUEUE_JOIN": {
           if (client.roomId) throw new Error("Already in room");
           if (!queue.includes(client)) queue.push(client);
-          send(ws, { type: "QUEUE_STATUS", payload: { size: queue.length } });
+          send(ws, { type: "QUEUE_STATUS", payload: { size: queue.length, matchSize: MATCH_SIZE } });
           tryMatchmake();
           break;
         }
         case "QUEUE_LEAVE": {
           const idx = queue.indexOf(client);
           if (idx >= 0) queue.splice(idx, 1);
-          send(ws, { type: "QUEUE_STATUS", payload: { size: queue.length } });
+          send(ws, { type: "QUEUE_STATUS", payload: { size: queue.length, matchSize: MATCH_SIZE } });
           break;
         }
         case "SEED_COMMIT":

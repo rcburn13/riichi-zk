@@ -110,7 +110,6 @@ const GAME_ID_FIELDS = [
   "challengeGameId",
   "resolveGameId",
   "statusGameId",
-  "bindGameId",
 ];
 
 async function connect() {
@@ -230,8 +229,6 @@ function syncGameIdFields(gameId, { force = false } = {}) {
 function ensureGameId() {
   if (!pendingGameId) {
     pendingGameId = randomBytes32();
-    const display = el("gameIdAuto");
-    if (display) display.textContent = pendingGameId;
     logMatch(`Auto gameId generated: ${pendingGameId}`);
     syncGameIdFields(pendingGameId);
     try {
@@ -241,6 +238,18 @@ function ensureGameId() {
     } catch (_) {}
   }
   return pendingGameId;
+}
+
+function bindGameToRoom(gameId) {
+  if (!gameId) return;
+  gameState.gameId = gameId;
+  pendingGameId = gameId;
+  syncGameIdFields(gameId, { force: true });
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set("gameId", gameId);
+    history.replaceState({}, "", url.toString());
+  } catch (_) {}
 }
 
 function parseUint(id) {
@@ -680,6 +689,7 @@ let ziffleReady = null;
 let ziffleReadyResolver = null;
 let gameState = {
   roomId: "",
+  gameId: null,
   seat: null,
   yourTurn: false,
   canWin: false,
@@ -1244,7 +1254,12 @@ async function ensureGameWs() {
     const { type, payload } = msg;
     switch (type) {
       case "QUEUE_STATUS":
-        logMatch(`Queue size: ${payload.size}`);
+        if (payload.matchSize) {
+          const waiting = Math.max(payload.matchSize - payload.size, 0);
+          logMatch(`Queue: ${payload.size}/${payload.matchSize} (${waiting} more to start)`);
+        } else {
+          logMatch(`Queue size: ${payload.size}`);
+        }
         break;
       case "ROOM_ASSIGNED":
         setQueueState(false);
@@ -1263,6 +1278,15 @@ async function ensureGameWs() {
         if (el("seatIndex")) el("seatIndex").value = String(payload.seat);
         storeRoomId(payload.roomId);
         logMatch(`Room ${payload.roomId} seat ${payload.seat}`);
+        if (payload.gameId) {
+          bindGameToRoom(payload.gameId);
+          logMatch(`Room bound to game ${payload.gameId}`);
+        } else if (!gameState.gameId) {
+          const autoId = ensureGameId();
+          bindGameToRoom(autoId);
+          sendWs("BIND_GAME", { gameId: autoId });
+          logMatch(`Room bound to game ${autoId}`);
+        }
         if (payload.rejoined) {
           toast("Rejoined room");
         }
@@ -1433,6 +1457,9 @@ async function ensureGameWs() {
         if (payload.roomId) {
           gameState.roomId = payload.roomId;
           storeRoomId(payload.roomId);
+        }
+        if (payload.gameId) {
+          bindGameToRoom(payload.gameId);
         }
         gameState.phase = payload.phase || gameState.phase;
         if (gameState.phase === "PLAY") {
