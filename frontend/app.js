@@ -62,6 +62,34 @@ function setQueueState(next) {
   }
 }
 
+function bindWalletEvents() {
+  if (walletListenersBound || !window.ethereum) return;
+  walletListenersBound = true;
+  window.ethereum.on("accountsChanged", (accounts) => {
+    if (accounts && accounts.length) {
+      currentAddress = accounts[0];
+      setWalletConnected(true);
+      refreshStatus().catch(() => {});
+    } else {
+      disconnectWallet();
+    }
+  });
+  window.ethereum.on("chainChanged", () => {
+    if (currentAddress) refreshStatus().catch(() => {});
+  });
+  window.ethereum.on("disconnect", () => {
+    disconnectWallet();
+  });
+}
+
+async function requestAccounts() {
+  if (!window.ethereum) {
+    throw new Error("No wallet found. Open in MetaMask or Coinbase Wallet.");
+  }
+  bindWalletEvents();
+  await window.ethereum.request({ method: "eth_requestAccounts" });
+}
+
 const statusMap = ["None", "Open", "Active", "Settled", "Disputed", "Finalized"];
 const TILE_NAMES = [
   "1m","2m","3m","4m","5m","6m","7m","8m","9m",
@@ -74,6 +102,7 @@ let countdownTimer = null;
 let gameActive = false;
 let pendingGameId = null;
 let queued = false;
+let walletListenersBound = false;
 const GAME_ID_FIELDS = [
   "joinGameId",
   "finalizeGameId",
@@ -86,11 +115,11 @@ const GAME_ID_FIELDS = [
 
 async function connect() {
   if (!window.ethereum) {
-    toast("No wallet found. Install MetaMask.");
+    toast("No wallet found. Open in MetaMask or Coinbase Wallet.");
     return;
   }
+  await requestAccounts();
   provider = new ethers.BrowserProvider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
   signer = await provider.getSigner();
   currentAddress = await signer.getAddress();
   contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
