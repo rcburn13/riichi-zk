@@ -118,26 +118,23 @@ body {
   font-family: "Shippori Mincho", serif;
   font-size: 1rem;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 8px;
 }
 
 .panel.mini summary::-webkit-details-marker {
   display: none;
 }
 
-.panel.mini summary::after {
-  content: "+";
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.panel.mini[open] summary::after {
-  content: "-";
-}
+.panel.mini summary::after { content: ""; }
 
 .panel.mini .panel-body {
   margin-top: 10px;
+}
+
+.summary-sep {
+  color: var(--muted);
 }
 
 .eyebrow {
