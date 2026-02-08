@@ -84,7 +84,7 @@ body {
 
 .hero {
   display: grid;
-  grid-template-columns: 1.6fr 0.6fr;
+  grid-template-columns: 1fr;
   gap: 22px;
   align-items: start;
 }
@@ -94,6 +94,10 @@ body {
   font-size: clamp(2rem, 4vw, 3rem);
   margin: 6px 0 10px;
   letter-spacing: -0.02em;
+}
+
+.hero-copy {
+  max-width: 820px;
 }
 
 .eyebrow {
