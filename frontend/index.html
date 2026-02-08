@@ -99,19 +99,8 @@
         </div>
       </header>
 
-      <section class="status-strip">
-        <div>
-          <span>Wallet</span>
-          <strong id="wallet">Not connected</strong>
-        </div>
-        <div>
-          <span>Network</span>
-          <strong id="network">Unknown</strong>
-        </div>
-        <div>
-          <span>Contract</span>
-          <strong id="contract">0x56081C9F61427cf841cDc07eCBc56bA1bB0B0ca3</strong>
-        </div>
+      <section class="proof-tip">
+        <p>Tip: Run <code>scripts/prove_example.sh</code> locally and paste the generated <code>proof.json</code> + <code>public.json</code> below.</p>
       </section>
 
       <section class="panel compact">
@@ -356,7 +345,20 @@
         <div class="foot-links">
           <a href="https://x.com/MahjongDepolyer" target="_blank" rel="noopener">X / MahjongDeployer</a>
         </div>
-        <p>Tip: If you run the proof pipeline locally, use `scripts/prove_example.sh` and paste the generated `proof.json` + `public.json` here.</p>
+        <div class="status-strip compact">
+          <div>
+            <span>Wallet</span>
+            <strong id="wallet">Not connected</strong>
+          </div>
+          <div>
+            <span>Network</span>
+            <strong id="network">Unknown</strong>
+          </div>
+          <div>
+            <span>Contract</span>
+            <strong id="contract">0x56081C9F61427cf841cDc07eCBc56bA1bB0B0ca3</strong>
+          </div>
+        </div>
       </footer>
     </main>
 

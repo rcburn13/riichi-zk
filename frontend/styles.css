@@ -256,6 +256,13 @@ body {
   box-shadow: var(--shadow);
 }
 
+.status-strip.compact {
+  margin: 10px 0 0;
+  padding: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  font-size: 0.78rem;
+}
+
 .status-strip span {
   display: block;
   font-size: 0.65rem;
@@ -268,6 +275,26 @@ body {
   font-size: 0.85rem;
   word-break: break-all;
   color: #f6e3c0;
+}
+
+.status-strip.compact strong {
+  font-size: 0.78rem;
+}
+
+.proof-tip {
+  margin: 10px 0 22px;
+  background: rgba(212, 161, 79, 0.12);
+  border: 1px dashed rgba(212, 161, 79, 0.4);
+  border-radius: 14px;
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.proof-tip code {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 0.8rem;
+  color: #f2d7a4;
 }
 
 .panel-grid {
