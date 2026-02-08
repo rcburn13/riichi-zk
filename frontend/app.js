@@ -43,6 +43,25 @@ const toast = (msg) => {
   setTimeout(() => t.classList.remove("show"), 2800);
 };
 
+function setWalletConnected(connected) {
+  const btn = el("connect");
+  if (!btn) return;
+  btn.textContent = connected ? "Disconnect" : "Connect";
+}
+
+function setQueueState(next) {
+  queued = next;
+  const joinBtn = el("queueJoin");
+  if (joinBtn) {
+    joinBtn.textContent = queued ? "Queued" : "Join Queue";
+    joinBtn.disabled = queued;
+  }
+  const leaveBtn = el("queueLeave");
+  if (leaveBtn) {
+    leaveBtn.disabled = !queued;
+  }
+}
+
 const statusMap = ["None", "Open", "Active", "Settled", "Disputed", "Finalized"];
 const TILE_NAMES = [
   "1m","2m","3m","4m","5m","6m","7m","8m","9m",
@@ -54,6 +73,7 @@ const TILE_NAMES = [
 let countdownTimer = null;
 let gameActive = false;
 let pendingGameId = null;
+let queued = false;
 const GAME_ID_FIELDS = [
   "joinGameId",
   "finalizeGameId",
@@ -78,7 +98,21 @@ async function connect() {
   if (gameWs && gameWs.readyState === WebSocket.OPEN) {
     attemptRejoin().catch(() => {});
   }
+  setWalletConnected(true);
   toast("Wallet connected");
+}
+
+function disconnectWallet() {
+  provider = null;
+  signer = null;
+  contract = null;
+  currentAddress = null;
+  setWalletConnected(false);
+  const walletEl = el("wallet");
+  if (walletEl) walletEl.textContent = "Not connected";
+  const networkEl = el("network");
+  if (networkEl) networkEl.textContent = "Unknown";
+  toast("Disconnected");
 }
 
 async function switchToBase() {
@@ -113,7 +147,8 @@ async function refreshStatus() {
   const network = await provider.getNetwork();
   el("wallet").textContent = currentAddress || "—";
   el("network").textContent = network.chainId === BASE_CHAIN_ID ? network.name : `${network.name} (not Base)`;
-  el("chainid").textContent = network.chainId.toString();
+  const chainEl = el("chainid");
+  if (chainEl) chainEl.textContent = network.chainId.toString();
 
   const house = await contract.house();
   const engine = await contract.ENGINE_VERSION_HASH();
@@ -425,7 +460,13 @@ function clearSigs() {
 }
 
 function bindEvents() {
-  el("connect").addEventListener("click", connect);
+  el("connect").addEventListener("click", () => {
+    if (currentAddress) {
+      disconnectWallet();
+    } else {
+      connect().catch(err => toast(err.message));
+    }
+  });
   el("switch").addEventListener("click", switchToBase);
   el("calcPlayersHash").addEventListener("click", () => computePlayersHash().catch(err => toast(err.message)));
   el("calcDigest").addEventListener("click", () => computeDigest().catch(err => toast(err.message)));
@@ -483,6 +524,8 @@ function bindEvents() {
 }
 
 bindEvents();
+setWalletConnected(false);
+setQueueState(false);
 (() => {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -1150,6 +1193,7 @@ async function ensureGameWs() {
     gameWsReadyResolver = null;
     gameActive = false;
     stopAmbient();
+    setQueueState(false);
   });
   gameWs.addEventListener("message", async (evt) => {
     const msg = JSON.parse(evt.data);
@@ -1159,6 +1203,7 @@ async function ensureGameWs() {
         logMatch(`Queue size: ${payload.size}`);
         break;
       case "ROOM_ASSIGNED":
+        setQueueState(false);
         gameState.roomId = payload.roomId;
         gameState.seat = payload.seat;
         gameState.playerCount = Array.isArray(payload.players) ? payload.players.length : 0;
@@ -1417,12 +1462,14 @@ async function joinQueue() {
   await ensureGameWs();
   sendWs("QUEUE_JOIN", {});
   logMatch("Joined queue.");
+  setQueueState(true);
 }
 
 async function leaveQueue() {
   if (!gameWs) return;
   sendWs("QUEUE_LEAVE", {});
   logMatch("Left queue.");
+  setQueueState(false);
 }
 
 async function spectateRoom() {
